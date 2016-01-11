@@ -21,7 +21,7 @@ jq.createGame = function() {
 	})
 };
 
-jq.advanceTurn = function(gameId) {
+jq.nextTurn = function(gameId) {
 	return new Promise(function(resolve, reject) {
 		request.get(host + '/games/' + gameId + '/next_turn', function(error, response, body) {
 			if(error) {
@@ -62,6 +62,17 @@ jq.assign = function(gameId, machineId, jobIds) {
 			}
 			try {
 				resolve(JSON.parse(body));
+				//return new Promise(function(resolve, reject) {
+				//	if(error) {
+				//		reject(error);
+				//		return;
+				//	}
+				//	try {
+				//		resolve(JSON.parse(body));
+				//	} catch(e) {
+				//		reject('Problem assigning new machine');
+				//	}
+				// }
 			} catch(e) {
 				reject('Problem assigning machine');
 			}

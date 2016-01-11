@@ -11,35 +11,45 @@ game.workingMachinesArray = [];
 game.createNewMachine = function() {
 	jq.newMachine(game.id)
 	.then(function(newMachine) {
-		console.log('newMachine response', newMachine)
+		//console.log('newMachine response', newMachine)
 		game.workingMachinesArray.push(newMachine);
-		game.allocate();
+		game.allocate(game.advanceTurn);
 	})
 }
 
 game.advanceTurn = function() {
-	jq.advanceTurn(game.id)
+	jq.nextTurn(game.id)
 	.then(function(turnInfo) {
 		console.log('advanceTurn response', turnInfo)
-		game.status = turnInfo.status;
 		game.latestJobsArray = turnInfo.jobs;
 		game.currentTurn = turnInfo.current_turn;
+		game.status = turnInfo.status;
+		if(game.status !== 'completed') {
+			//console.log('1')
+			game.allocate(game.advanceTurn)
+	  	} else {
+		  	console.log('Winner')
+		  	game.getInfo(game.id)
+		  	.then(function(res) {
+		  		console.log('winning info', res)
+		  	})  		
+	  	}
 	})
 }
 
 game.checkStatus = function() {
 	var machineStatusArray = [];
-
 	for(var i = 0; i < game.workingMachinesArray.length; i++) {
 		var machine = game.workingMachinesArray[i];
-
+		//console.log('machine!', machine)
 		if(!machine.jobs) {
-			console.log('YO');
 			machineStatusArray.push({id: machine.id, availableMemory: 64});
 			break;
 		}
 
+		//console.log('hitting checkStatus');
 		for(var j = 0; j < machine.jobs.length; j++) {
+			//console.log('inner loop');
 			var mem = 0;
 			if(game.currentTurn <= machine.jobs[j].turns) {
 				mem += machine.jobs[j].memoryUsed;
@@ -47,17 +57,21 @@ game.checkStatus = function() {
 			}
 		}
 	}
+	console.log('machineStatusArray', machineStatusArray)
 	return machineStatusArray;
 }
 
-game.allocate = function() {
+game.allocate = function(callback) {
+	//console.log('2');
 	//need to delete machines
 	var machineStatusArray = game.checkStatus();
-	if(!machineStatusArray) {
-		game.createNewMachine();
+	if(machineStatusArray.length === 0) {
+		//console.log('2.1');
+		return game.createNewMachine();
 	}
-
+	//console.log('allocating')
 	for(var i = 0; i < machineStatusArray.length; i++) {
+
 		var jobs = [];
 		jobsList = [];
 		var machine = machineStatusArray[i];
@@ -72,7 +86,12 @@ game.allocate = function() {
 		}
 		jq.assign(game.id, machine.id, jobsList)
 		.then(function(res) {
+			//console.log('3')
 			console.log('assign response', res)
+			if(callback) {	
+				//console.log('4')
+				callback();
+			}
 		})
 		//update workingMachinesArray
 		for(var k = 0; k < game.workingMachinesArray.length; k++) {
@@ -83,41 +102,43 @@ game.allocate = function() {
 	}
 };
 
-game.run = function() {
-	game.advanceTurn()
-	if(game.status !== 'completed') {
-		game.allocate()
-		game.run()
-  	} else {
-	  	console.log('Winner')
-	  	game.getInfo(game.id)
-	  	.then(function(res) {
-	  		console.log('winning info', res)
-	  	})  		
-  	}
-}
-
 game.start = function() {
 	jq.createGame()
 	.then(function(gameState) {
 		console.log('createGame response', gameState)
 		game.id = gameState.id;
 		game.status = gameState.status;
-		game.run();
-	// 	return jq.advanceTurn(game.id);
-	// })
-	// .then(function(turnInfo) {
-	// 	console.log('advanceTurn response', turnInfo)
-	// 	game.latestJobsArray = turnInfo.jobs;
-	// 	game.currentTurn = turnInfo.current_turn;
-	// 	return jq.newMachine(game.id);
-	// })
-	// .then(function(newMachine) {
-	// 	console.log('newMachine response', newMachine)
-	// 	game.workingMachinesArray.push(newMachine);
-	// 	game.allocate();
-	// })
+		game.advanceTurn();
+	});
 };
 
 game.start();
+
+// game.recurse = function() {
+// 	if(game.status !== 'completed') {
+// 		game.allocate(game.run);
+// 	} else {
+// 	  	console.log('Winner');
+// 	  	game.getInfo(game.id)
+// 	  	.then(function(res) {
+// 	  		console.log('winning info', res);
+// 	  	})  		
+// 	}
+// }
+
+// game.run = function() {
+// 	game.advanceTurn()
+// 	.then(function(res) {
+// 		if(game.status !== 'completed') {
+// 			game.allocate(game.run)
+// 	  	} else {
+// 		  	console.log('Winner')
+// 		  	game.getInfo(game.id)
+// 		  	.then(function(res) {
+// 		  		console.log('winning info', res)
+// 		  	})  		
+// 	  	}
+// 	})
+// }
+
 //game.terminateMachine(game.id, machineId);
