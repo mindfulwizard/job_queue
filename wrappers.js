@@ -39,8 +39,11 @@ jq.nextTurn = function(gameId) {
 
 jq.newMachine = function(gameId) {
 	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
+		if(error) {
+			console.log(error)
+		}
 		return body;
-		//need error handling
+		//WHY CAN'T I SYNCHRONOUSLY CATCH THE BODY OBJECT IN A VARIABLE IN REDUX.JS?
 	})
 	//return new Promise(function(resolve, reject) {
 	//	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
