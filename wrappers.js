@@ -54,6 +54,7 @@ jq.newMachine = function(gameId) {
 };
 
 jq.assign = function(gameId, machineId, jobIds) {
+	console.log('heey');
 	return new Promise(function(resolve, reject) {
 		request.post(host + '/games/' + gameId + '/machines/' + machineId + '/job_assignments', {form: {job_ids: JSON.stringify(jobIds)}}, function(error, response, body) {
 			if(error) {
@@ -62,17 +63,6 @@ jq.assign = function(gameId, machineId, jobIds) {
 			}
 			try {
 				resolve(JSON.parse(body));
-				//return new Promise(function(resolve, reject) {
-				//	if(error) {
-				//		reject(error);
-				//		return;
-				//	}
-				//	try {
-				//		resolve(JSON.parse(body));
-				//	} catch(e) {
-				//		reject('Problem assigning new machine');
-				//	}
-				// }
 			} catch(e) {
 				reject('Problem assigning machine');
 			}

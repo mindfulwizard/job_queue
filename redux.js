@@ -3,18 +3,10 @@ var jq = require('./wrappers');
 var game = Object.create(null);
 game.currentJobs = [];
 
-//1. create game
-//2. advance turn
-//3. check if win -> exit if so
-//4. get status of machines running jobs
-//5. create/delete new machines if necessary
-//6. allocate jobs to machines
-//Repeat from step 2 until win
-
 game.advanceTurn = function() {
     jq.nextTurn(game.id)
         .then(function(turnInfo) {
-            if(turnInfo.status === 'winding_down') {
+            if(turnInfo.status === 'complete') {
                 console.log('Done!');
                 console.log(turnInfo);
                 return;
@@ -22,14 +14,14 @@ game.advanceTurn = function() {
             game.newJobs = turnInfo.jobs;
             game.currentTurn = turnInfo.current_turn;
             //console.log('current jobs', game.currentJobs)
-            console.log('NEW TURN')
-            console.log(turnInfo.status)
+            //console.log('NEW TURN')
             console.log(turnInfo.current_turn)
             game.checkMachineStatus();
         })
 }
 
 game.checkMachineStatus = function() {
+    //return memory status of machines in format: {0: 'machine1', 1: 'machine2', 2: 'machine3'}, [61, 57, 59]
     var availMemArray = [];
     var machines = Object.create(null);
     var seen = [];
@@ -53,59 +45,81 @@ game.checkMachineStatus = function() {
             addProp(i);
         }
     }
+    //console.log('machines', machines);
+    //console.log('availMemArray', availMemArray);
     return game.allocate(machines, availMemArray);
 }
 
 game.allocate = function(machinesAvailable, availMemArray) {
     //console.log('machinesAvailable', machinesAvailable)
     //console.log('newJobs', game.newJobs)
-    return Promise.all(function () {
-        console.log('balling')
-        var arrayOfPromises = [];
-        for (var machine in machinesAvailable) {
-            var jobIdArray = [];
-            for (var i = 0; i < game.newJobs.length; i++) {
-                if (machinesAvailable[machine] >= game.newJobs[i].memory_required) {
-                    game.newJobs[i].machineId = machine;
-                    game.currentJobs.push(game.newJobs[i]);
-                    jobIdArray.push(game.newJobs[i].id);
-                    game.newJobs.splice(i,1);
-                } else {
-                    break;
-                }
+    function getMachine(memoryRequired, memArray) {
+        //loop over memArray and return fullest machine with enough free space
+        var smallest = -1;
+        for(var j = 0; j < memArray.length; j++) {
+            if(memArray[j] > memoryRequired && (memArray[j] < memArray[smallest] || smallest === -1)) {
+                smallest = j;
             }
+        }
+        if(smallest === -1) {
+            //if there's no machine with enough space, create new machine
+            jq.newMachine(game.id)
+                .then(function(newMachine) {
+                    memArray.push(64 - memoryRequired);
+                    machinesAvailable[memArray.length] = newMachine.id;
+                    console.log(memArray)
+                    console.log(machinesAvailable)
+                    return newMachine.id;
+                })
+        } else {
+            //subtract required memory and return machine id
+            memArray[smallest] = memArray[smallest] - memoryRequired;
+            return machinesAvailable[smallest];
+        }
+    }
+
+    function collectJobs(machineId, jobId) {
+        //create hash table of [jobs] to assign per machine
+        if(game.toAsync[machineId]) {
+            game.toAsync[machineId].push(jobId);
+        } else {
+            var array = [];
+            array.push(jobId);
+            game.toAsync[machineId] = array;
+        }
+    }
+
+    game.toAsync = Object.create(null);
+    var arrayOfPromises = [];
+
+    for(var i = 0; i < game.newJobs.length; i++) {
+        var machineId = getMachine(game.newJobs[i].memory_required, availMemArray);
+        collectJobs(machineId, game.newJobs[i].id);
+        game.newJobs[i].machineId = machineId;
+        game.currentJobs.push(game.newJobs[i]);
+    }
+
+    //assign jobs
+    for(var prop in game.toAsync) {
+        arrayOfPromises.push(function () {
+            //async, returns promise
+            jq.assign(game.id, prop, game.toAsync[prop]);
+        });
+    }
+
+    //delete machines with full 64 gb mem
+    for(var j = 0; j < availMemArray.length; j++) {
+        if (availMemArray[i] === 64) {
             arrayOfPromises.push(function () {
                 //async, returns promise
-                jq.assign(game.id, machine, jobIdArray)
+                jq.terminateMachine(game.id, machinesAvailable[i])
             });
         }
-        //delete machines with full 64 gb mem
-        for (var machine in machinesAvailable) {
-            if (machinesAvailable[machine] === 64) {
-                arrayOfPromises.push(function () {
-                    //async, returns promise
-                    jq.terminateMachine(game.id, machine)
-                });
-            }
-        }
-        return arrayOfPromises;
-    }())
+    }
+    Promise.all(arrayOfPromises)
         .then(function(arrayOfResults) {
-            //if there are more jobs than machines, add more machines
-            if(!game.currentJobs.length || game.newJobs.length) {
-                if(!game.currentJobs.length && !game.newJobs.length) {game.advanceTurn()}
-                console.log('currentJobs', game.currentJobs.length)
-                console.log('newjobs', game.newJobs.length)
-                jq.newMachine(game.id)
-                    .then(function(newMachine) {
-                        //console.log('newMachine response', newMachine)
-                        var machinesAvailable = Object.create(null);
-                        machinesAvailable[newMachine.id] = 64;
-                        return game.allocate(machinesAvailable);
-                    })
-            } else {
-                game.advanceTurn();
-            }
+            //console.log('results', arrayOfResults)
+            game.advanceTurn();
         });
 }
 
