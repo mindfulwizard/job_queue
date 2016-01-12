@@ -101,19 +101,19 @@ game.allocate = function(machinesAvailable, availMemArray) {
 
     //assign jobs
     for(var prop in game.toAsync) {
-        arrayOfPromises.push(function () {
+        arrayOfPromises.push(
             //async, returns promise
-            jq.assign(game.id, prop, game.toAsync[prop]);
-        });
+            jq.assign(game.id, prop, game.toAsync[prop])
+        );
     }
 
     //delete machines with full 64 gb mem
     for(var j = 0; j < availMemArray.length; j++) {
         if (availMemArray[i] === 64) {
-            arrayOfPromises.push(function () {
+            arrayOfPromises.push(
                 //async, returns promise
                 jq.terminateMachine(game.id, machinesAvailable[i])
-            });
+            );
         }
     }
     Promise.all(arrayOfPromises)
