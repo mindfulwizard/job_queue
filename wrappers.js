@@ -40,6 +40,7 @@ jq.nextTurn = function(gameId) {
 jq.newMachine = function(gameId) {
 	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
 		return body;
+		//need error handling
 	})
 	//return new Promise(function(resolve, reject) {
 	//	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {

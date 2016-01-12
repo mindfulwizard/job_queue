@@ -64,13 +64,13 @@ game.allocate = function(machinesAvailable, availMemArray) {
         if(smallest === -1) {
             //if there's no machine with enough space, create new machine
             //THIS NEEDS TO BE BLOCKING!!!
-            jq.newMachine(game.id)
-                .then(function(newMachine) {
+            var newMachine = jq.newMachine(game.id);
+                //.then(function(newMachine) {
                     memArray.push(64 - memoryRequired);
                     machinesAvailable[memArray.length] = newMachine.id;
-                    console.log('machine.id', newMachine.id)
+                    console.log('machine.id', newMachine.id);
                     return newMachine.id;
-                })
+               // })
         } else {
             //subtract required memory and return machine id
             memArray[smallest] = memArray[smallest] - memoryRequired;
