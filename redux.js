@@ -63,12 +63,12 @@ game.allocate = function(machinesAvailable, availMemArray) {
         }
         if(smallest === -1) {
             //if there's no machine with enough space, create new machine
+            //THIS NEEDS TO BE BLOCKING!!!
             jq.newMachine(game.id)
                 .then(function(newMachine) {
                     memArray.push(64 - memoryRequired);
                     machinesAvailable[memArray.length] = newMachine.id;
-                    console.log(memArray)
-                    console.log(machinesAvailable)
+                    console.log('machine.id', newMachine.id)
                     return newMachine.id;
                 })
         } else {
@@ -87,6 +87,7 @@ game.allocate = function(machinesAvailable, availMemArray) {
             array.push(jobId);
             game.toAsync[machineId] = array;
         }
+        console.log('collectJobs', game.toAsync)
     }
 
     game.toAsync = Object.create(null);
@@ -101,6 +102,8 @@ game.allocate = function(machinesAvailable, availMemArray) {
 
     //assign jobs
     for(var prop in game.toAsync) {
+        console.log('prop', prop)
+        console.log('jobID array', game.toAsync[prop])
         arrayOfPromises.push(
             //async, returns promise
             jq.assign(game.id, prop, game.toAsync[prop])
