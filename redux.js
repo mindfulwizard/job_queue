@@ -10,6 +10,10 @@ game.advanceTurn = function() {
             if(turnInfo.status === 'completed') {
                 console.log('Done!');
                 console.log(turnInfo);
+                jq.getInfo(game.id)
+                    .then(function(finalInfo) {
+                        console.log(finalInfo);
+                    })
                 return;
             }
             game.newJobs = turnInfo.jobs;
