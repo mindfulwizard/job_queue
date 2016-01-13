@@ -38,24 +38,24 @@ jq.nextTurn = function(gameId) {
 };
 
 jq.newMachine = function(gameId) {
-	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
-		return JSON.parse(body);
-	});
-};
-	//return new Promise(function(resolve, reject) {
-	//	request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
-	//		if(error) {
-	//			reject(error);
-	//			return;
-	//		}
-	//		try {
-	//			resolve(JSON.parse(body));
-	//		} catch(e) {
-	//			reject('Problem creating new machine');
-	//		}
-	//	});
-	//})
+	//request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
+	//	return JSON.parse(body);
+	//});
 
+	return new Promise(function(resolve, reject) {
+		request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
+			if(error) {
+				reject(error);
+				return;
+			}
+			try {
+				resolve(JSON.parse(body));
+			} catch(e) {
+				reject('Problem creating new machine');
+			}
+		});
+	})
+};
 
 jq.assign = function(gameId, machineId, jobIds) {
 	return new Promise(function(resolve, reject) {
