@@ -38,10 +38,6 @@ jq.nextTurn = function(gameId) {
 };
 
 jq.newMachine = function(gameId) {
-	//request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
-	//	return JSON.parse(body);
-	//});
-
 	return new Promise(function(resolve, reject) {
 		request.post(host + '/games/' + gameId + '/machines', function(error, response, body) {
 			if(error) {
@@ -73,9 +69,9 @@ jq.assign = function(gameId, machineId, jobIds) {
 	})
 };
 
-jq.terminateMachine = function(gameId, machineId) {
+jq.terminate = function (gameId, machineId) {
 	return new Promise(function(resolve, reject) {
-		request.delete(host + '/games/' + gameId + '/machines/' + machineId, {form: {}}, function(error, response, body) {
+		request.del(host + '/games/' + gameId + '/machines/' + machineId, function (error, response, body) {
 			if(error) {
 				reject(error);
 				return;

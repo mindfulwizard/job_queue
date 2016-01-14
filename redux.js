@@ -67,7 +67,7 @@ game.prep = function(machinesAvailable, availMemArray) {
         //loop over memArray and return fullest machine with enough free space
         var smallest = -1;
         for(var j = 0; j < memArray.length; j++) {
-            if(memArray[j] > memoryRequired && (memArray[j] < memArray[smallest] || smallest === -1)) {
+            if ((memArray[j] > memoryRequired) && ((memArray[j] < memArray[smallest]) || smallest === -1)) {
                 smallest = j;
             }
         }
@@ -87,7 +87,7 @@ game.prep = function(machinesAvailable, availMemArray) {
         } else {
             //subtract required memory and return machine id
             memArray[smallest] = memArray[smallest] - memoryRequired;
-            return machinesAvailable[smallest];
+            return [machinesAvailable[smallest], memArray];
         }
     }
 
@@ -105,19 +105,31 @@ game.prep = function(machinesAvailable, availMemArray) {
     game.toAsync = Object.create(null);
 
     for(var i = 0; i < game.newJobs.length; i++) {
-        var machineId = getMachine(game.newJobs[i].memory_required, availMemArray);
-        if(!machineId) {
+        var results = getMachine(game.newJobs[i].memory_required, availMemArray);
+        if (!results) {
             return;
         } else {
+            var machineId = results[0];
+            availMemArray = results[1];
             collectJobs(machineId, game.newJobs[i].id);
             game.newJobs[i].machineId = machineId;
             game.currentJobs.push(game.newJobs[i]);
         }
     }
-    game.allocate(machinesAvailable, availMemArray);
+    //console.log('memory:', availMemArray);
+    //console.log(machinesAvailable);
+    game.toDelete = [];
+
+    for (var k = 0; k < availMemArray.length; k++) {
+        if (availMemArray[k] === 64) {
+            console.log('found one to delete')
+            game.toDelete.push(machinesAvailable[k]);
+        }
+    }
+    game.allocate();
 }
 
-game.allocate = function(machinesAvailable, availMemArray) {
+game.allocate = function () {
     var arrayOfPromises = [];
     //assign jobs
     for(var prop in game.toAsync) {
@@ -129,15 +141,15 @@ game.allocate = function(machinesAvailable, availMemArray) {
         );
     }
 
+
     //delete machines with full 64 gb mem
-    for(var j = 0; j < availMemArray.length; j++) {
-        if (availMemArray[j] === 64) {
+    for (var j = 0; j < game.toDelete.length; j++) {
             arrayOfPromises.push(
                 //async, returns promise
-                jq.terminateMachine(game.id, machinesAvailable[i])
+                jq.terminate(game.id, game.toDelete[j])
             );
-        }
     }
+
     Promise.all(arrayOfPromises)
         .then(function(arrayOfResults) {
             //console.log('results', arrayOfResults)
